@@ -9,6 +9,12 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from device import Device, TouchScreenKeyboardDeviceDirector
+key2device={
+	'play': 'keyboard_2'
+	'<':'keyboard_3',
+	'vol+':'keyboard_4',
+	'esc': 'keyboard_2'
+}
 class Human(): 
 	''' This class represents a human with both cognition and body. In Assignment 2, this will be an abstraction where most complex aspects of the human will be removed, except body parts. '''
 	def __init__(self, handler = None):
@@ -50,6 +56,7 @@ class Human():
 		return stm
 
 	def press(self, input):
+		current_keyboard="keyboard_1"
 		''' Instructs the human to press on a series of targets. The human implementation simulates and predict behavior and returns a resulting schedule chart. Clients can then evaluate the schedule chart for duration of operations.'''
 		schedule_chart = nx.DiGraph()
 
@@ -496,7 +503,14 @@ class Human():
 								previous_cognitive_operator = activate_target_location
 
 				move_finger.execute()
-
+				# change keyboard screen
+				if target.name in key2device:
+					for keyboard in self.handler.children:
+						if keyboard.name==current_keyboard:
+							keybaord.printSwitch=False
+						elif keyboard.name==key2device[target.name]:
+							keyboard.printSwitch=True
+							current_keyboard=keyboard.name
 				self.__draw_all()
 
 				if previous_perceptual_operator is not None:
@@ -512,7 +526,6 @@ class Human():
 
 		# Add a dummy operator for easier critical path calculation.
 		dummy = OperatorElement('dummy', None)
-
 		if previous_perceptual_operator is not None:
 			schedule_chart.add_edge(previous_perceptual_operator, dummy)
 
@@ -863,7 +876,12 @@ class Finger(BodyPart):
 
 		move_event = MoveBodyPartEvent(self, target_x, target_y)
 		self.handler.handle(move_event)
-
+		prob=0.2
+		result=np.choice(2,p=[prob,1-prob])
+		while result==0:
+			duration+=100
+			prob=prob*prob
+			result=np.choice(2,p=[prob,1-prob])
 		return duration
 		
 		# ---------------------------------------------------------------------------- #
