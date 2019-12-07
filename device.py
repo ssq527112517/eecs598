@@ -47,13 +47,13 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 	default_key_height = 170
 	default_touchbar_height = 70
 	if TOUCHBAR_OPTION == 1:
-		touchbar = ['esc','<','light','volumn','mute','siri']
+		touchbar = ['esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright','volumn','mute','siri']
 	elif TOUCHBAR_OPTION == 2:
-		touchbar = ['vol-', 'slide', 'vol+', 'out']
+		touchbar = ['End Show', 'slides', 'time', 'rehearse', "<",'bright','volumn','mute','siri']
 	elif TOUCHBAR_OPTION == 3:
-		touchbar = ['out', 'light-', 'light+', 'layout', 'launchpad', 'keylight-', 'keylight+', '<<', '>||', '>>', 'mute', 'vol-', 'vol+', 'siri']
+		touchbar = ['bright-', 'slider', 'bright+', 'out']
 	elif TOUCHBAR_OPTION == 4:
-		touchbar = ['esc',"<-","->","refresh","search","bookmark","newtag","<",'light','volumn','mute','siri']
+		touchbar = ['out', 'light-', 'light+', 'layout', 'launchpad', 'keylight-', 'keylight+', '<<', '>||', '>>', 'mute', 'vol-', 'vol+', 'siri']
 
 	key_rows = [touchbar,\
 	["~\n`",'1','2','3','4','5','6','7','8','9','0',"_\n-","+\n=",'del'],\
@@ -77,19 +77,65 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 			key_top_left_x = 110
 			key_button = KeyboardKey(key_row[0], key_row[0], key_top_left_x, 0, 140, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			# paste, newSlide, 'table','picture','shapes','TextBox',
+			key_top_left_x += 140 + 35
+			for ii in range(1,7):
+				key_button = KeyboardKey(key_row[ii], key_row[ii], key_top_left_x, 0, 150, key_height, transcript_textbox)
+				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+				key_top_left_x += 150 + 30
+			# 'copy','presentMode',
+			key_top_left_x += 85
+
+			for ii in range(7,9):
+				key_button = KeyboardKey(key_row[ii], key_row[ii], key_top_left_x, 0, 150, key_height, transcript_textbox)
+				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+				key_top_left_x += 150 + 30
+
 			# <
-			key_top_left_x += 140 + 1550
-			key_button = KeyboardKey(key_row[1], key_row[1], key_top_left_x, 0, 30, key_height, transcript_textbox)
+			key_top_left_x += 5
+			key_button = KeyboardKey(key_row[9], key_row[9], key_top_left_x, 0, 30, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
 			key_top_left_x += 30
 			for i in range(4):
-				key_button = KeyboardKey(key_row[i+2], key_row[i+2], key_top_left_x, 0, 160, key_height, transcript_textbox)
+				key_button = KeyboardKey(key_row[i+10], key_row[i+10], key_top_left_x, 0, 160, key_height, transcript_textbox)
 				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
 				key_top_left_x += 160
+			print(key_top_left_x)
 		elif idx == 0 and TOUCHBAR_OPTION == 2:
 			key_height = default_touchbar_height
+			# end show
+			key_top_left_x = 110
+			key_button = KeyboardKey(key_row[0], key_row[0], key_top_left_x, 0, 230, key_height, transcript_textbox)
+			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			key_top_left_x += 230 + 230
+			# slides
+			key_button = KeyboardKey(key_row[1], key_row[1], key_top_left_x, 0, 760, key_height, transcript_textbox)
+			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			key_top_left_x += 760 + 35
+			# time
+			key_button = KeyboardKey(key_row[2], key_row[2], key_top_left_x, 0, 230, key_height, transcript_textbox)
+			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			key_top_left_x += 230 + 30
+
+			# rehearse
+			key_button = KeyboardKey(key_row[3], key_row[3], key_top_left_x, 0, 150, key_height, transcript_textbox)
+			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			key_top_left_x += 150 + 35
+
+			# <
+			key_top_left_x += 5
+			key_button = KeyboardKey(key_row[4], key_row[4], key_top_left_x, 0, 30, key_height, transcript_textbox)
+			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+			key_top_left_x += 30
+			for i in range(4):
+				key_button = KeyboardKey(key_row[i+5], key_row[i+5], key_top_left_x, 0, 160, key_height, transcript_textbox)
+				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
+				key_top_left_x += 160
+			print(key_top_left_x)
+		elif idx == 0 and TOUCHBAR_OPTION == 3:
+			key_height = default_touchbar_height
 			# vol-
-			key_top_left_x = 1250
+			key_top_left_x = 1250 - 160 - 30
 			key_button = KeyboardKey(key_row[0], key_row[0], key_top_left_x, 0, 150, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
 			# slide
@@ -104,7 +150,9 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 			key_top_left_x += 150
 			key_button = KeyboardKey(key_row[3], key_row[3], key_top_left_x, 0, 100, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-		elif idx == 0 and TOUCHBAR_OPTION == 3:
+			key_top_left_x += 100
+			print(key_top_left_x)
+		elif idx == 0 and TOUCHBAR_OPTION == 4:
 			key_height = default_touchbar_height
 			# out
 			key_top_left_x = 110
@@ -162,45 +210,8 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 			key_top_left_x += 140 + 35
 			key_button = KeyboardKey(key_row[13], key_row[13], key_top_left_x, 0, 165, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-		elif idx == 0 and TOUCHBAR_OPTION == 4:
-			key_height = default_touchbar_height
-			# out
-			key_top_left_x += 110
-			key_button = KeyboardKey(key_row[0], key_row[0], key_top_left_x, 0, 140, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# <-
-			key_top_left_x += 140 + 35
-			key_button = KeyboardKey(key_row[1], key_row[1], key_top_left_x, 0, 160, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# ->
-			key_top_left_x += 160 + 15
-			key_button = KeyboardKey(key_row[2], key_row[2], key_top_left_x, 0, 160, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# refresh
-			key_top_left_x += 160 + 15
-			key_button = KeyboardKey(key_row[3], key_row[3], key_top_left_x, 0, 160, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# search
-			key_top_left_x += 160 + 15
-			key_button = KeyboardKey(key_row[4], key_row[4], key_top_left_x, 0, 620, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# bookmark
-			key_top_left_x += 620 + 15
-			key_button = KeyboardKey(key_row[5], key_row[5], key_top_left_x, 0, 160, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# newtag
-			key_top_left_x += 160 + 15
-			key_button = KeyboardKey(key_row[6], key_row[6], key_top_left_x, 0, 160, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			# <
-			key_top_left_x += 160 + 35
-			key_button = KeyboardKey(key_row[7], key_row[7], key_top_left_x, 0, 30, key_height, transcript_textbox)
-			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			key_top_left_x += 30
-			for i in range(4):
-				key_button = KeyboardKey(key_row[i+8], key_row[i+8], key_top_left_x, 0, 160, key_height, transcript_textbox)
-				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-				key_top_left_x += 160
+			key_top_left_x += 165
+			print(key_top_left_x)
 
 
 
