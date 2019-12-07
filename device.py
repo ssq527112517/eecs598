@@ -84,12 +84,12 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
 				key_top_left_x += 150 + 30
 			# 'copy','presentMode',
-			key_top_left_x += 85
+			key_top_left_x += 75
 
 			for ii in range(7,9):
-				key_button = KeyboardKey(key_row[ii], key_row[ii], key_top_left_x, 0, 150, key_height, transcript_textbox)
+				key_button = KeyboardKey(key_row[ii], key_row[ii], key_top_left_x, 0, 160, key_height, transcript_textbox)
 				keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-				key_top_left_x += 150 + 30
+				key_top_left_x += 160 + 30
 
 			# <
 			key_top_left_x += 5
@@ -109,9 +109,9 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
 			key_top_left_x += 230 + 230
 			# slides
-			key_button = KeyboardKey(key_row[1], key_row[1], key_top_left_x, 0, 760, key_height, transcript_textbox)
+			key_button = KeyboardKey(key_row[1], key_row[1], key_top_left_x, 0, 770, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
-			key_top_left_x += 760 + 35
+			key_top_left_x += 770 + 35
 			# time
 			key_button = KeyboardKey(key_row[2], key_row[2], key_top_left_x, 0, 230, key_height, transcript_textbox)
 			keyboard.add_child(key_button, key_top_left_x, key_top_left_y)
