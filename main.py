@@ -21,18 +21,15 @@ def main(argv):
 	# human = Human.create_novice(device)
 	human = Human.create_expert(device) # TODO: to test your  implementation with an expert user, uncomment this line and comment the one above it.
 
-	phrase_textbox = device.find_descendant('phrase_textbox')
-	space_key = device.find_descendant(' ')
-
-	transcription_textbox = device.find_descendant('transcription_textbox')
+	escape_key = device.find_descendant('esc')
 
 	# Reset the thumb to the space before each phrase.
-	human.body_parts['thumb'].location_x = space_key.top_left_x + space_key.width/2
-	human.body_parts['thumb'].location_y = space_key.top_left_y + space_key.height/2
+	human.body_parts['thumb'].location_x = escape_key.top_left_x + escape_key.width/2
+	human.body_parts['thumb'].location_y = escape_key.top_left_y + escape_key.height/2
 
 	# Reset the eyes to the phrase text box.
-	human.body_parts['eyes'].fixation_x = phrase_textbox.top_left_x + phrase_textbox.width/2
-	human.body_parts['eyes'].fixation_y = phrase_textbox.top_left_y + phrase_textbox.height/2
+	human.body_parts['eyes'].fixation_x = escape_key.top_left_x + escape_key.width/2
+	human.body_parts['eyes'].fixation_y = escape_key.top_left_y + escape_key.height/2
 
 
 	#  Visualize the device interface and the position of the thumb.
@@ -59,28 +56,27 @@ def main(argv):
 	phrase_typing_speeds = []
 	phrase_typing_timestamps = []
 
-'''
 	# For each test phrase in the file compute the duration it takes to type that phrase.
-	with open('data/phrases.txt') as phrase_set:
+	with open('data/tasks') as phrase_set:
 		for phrase in phrase_set:
 
 			phrase_typing_timestamps.append(total_duration/(60.0*1000.0)) # start time for this phrase since the fist time typing in minutes.
 
-			phrase = phrase.lower().rstrip()
+			phrase = phrase.rstrip()
 
-			phrase_textbox = device.get_descendant('phrase_textbox')
-			phrase_textbox.set_text(phrase)
+			# phrase_textbox = device.get_descendant('phrase_textbox')
+			# phrase_textbox.set_text(phrase)
 
-			transcription_textbox = device.get_descendant('transcription_textbox')
-			transcription_textbox.set_text('')
+			# transcription_textbox = device.get_descendant('transcription_textbox')
+			# transcription_textbox.set_text('')
 
 			# Reset the thumb to the space before each phrase.
-			human.body_parts['thumb'].location_x = space_key.top_left_x + space_key.width/2
-			human.body_parts['thumb'].location_y = space_key.top_left_y + space_key.height/2
+			human.body_parts['thumb'].location_x = escape_key.top_left_x + escape_key.width/2
+			human.body_parts['thumb'].location_y = escape_key.top_left_y + escape_key.height/2
 
 			# Reset the eyes to the phrase text box.
-			human.body_parts['eyes'].fixation_x = phrase_textbox.top_left_x + phrase_textbox.width/2
-			human.body_parts['eyes'].fixation_y = phrase_textbox.top_left_y + phrase_textbox.height/2
+			human.body_parts['eyes'].fixation_x = escape_key.top_left_x + escape_key.width/2
+			human.body_parts['eyes'].fixation_y = escape_key.top_left_y + escape_key.height/2
 			
 			schedule_chart = human.press(phrase)
 
@@ -117,7 +113,6 @@ def main(argv):
 
 	print("Typists can enter text at the speed of " + str(speed_words_per_minute) + "WPM.")
 
-'''
 if __name__ == "__main__":
 	main(sys.argv)
 

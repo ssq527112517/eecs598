@@ -86,65 +86,199 @@ class Human():
         previous_motor_finger_operator = None
         previous_motor_eyes_operator = None
 
-        words = input.split(" ")
+        word = input.split(',')
 
+        # NOT NEEDED
         # Chunk up words in 3-grams.
-        phrase = ''
-        word_index = 0
-        for word in words:
-            word_index += 1
+        # phrase = ''
+        # word_index = 0
+        # for word in words:
+        #     word_index += 1
+        #
+        #     phrase = phrase + word
+        #
+        #     if word_index < len(words):
+        #         if word_index % 10 == 0:
+        #             phrase = phrase + '|'
+        #         else:
+        #             phrase = phrase + '\t'
+        #
+        # words = phrase.split("|")
 
-            phrase = phrase + word
+        print(word)
+        # Move eyes to the phrase.
+        escape_key = self.handler.find_descendant('esc')
+        move_eyes = Move(str(operator_idx) + '_motor_eyes:' + escape_key.name, self.body_parts['eyes'],
+                         escape_key)
+        schedule_chart.add_node(move_eyes)
+        operator_idx += 1
 
-            if word_index < len(words):
-                if word_index % 3 == 0:
-                    phrase = phrase + '|'
+        move_eyes.execute()
+
+        if previous_cognitive_operator is not None:
+            schedule_chart.add_edge(previous_cognitive_operator, move_eyes)
+
+        if previous_perceptual_operator is not None:
+            schedule_chart.add_edge(previous_perceptual_operator, move_eyes)
+
+        if previous_motor_eyes_operator is not None:
+            schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
+
+        previous_motor_eyes_operator = move_eyes
+
+        # Find which target we intersect with.
+        intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
+        intersecting_handler = self.handler.find_intersect(intersecting_event, current_keyboard)
+
+        if intersecting_handler is not None:
+
+            encode_operator = None
+
+            while encode_operator is None or encode_operator.initiate_saccade:
+                # This should always be true; otherwise, we have gone out of the environment.
+                encode_operator = Encode(str(operator_idx) + '_encode:' + intersecting_handler.name,
+                                         self.body_parts['eyes'], intersecting_handler)
+                schedule_chart.add_node(encode_operator)
+                operator_idx += 1
+
+                encode_operator.execute()
+
+                if previous_perceptual_operator is not None:
+                    schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
+
+                if previous_motor_eyes_operator is not None:
+                    schedule_chart.add_edge(previous_motor_eyes_operator, encode_operator)
+
+                previous_perceptual_operator = encode_operator
+
+                if encode_operator.initiate_saccade:
+                    # We did not encode the handler under the fixation point in time and we need another saccade.
+                    move_eyes = Move(str(operator_idx) + '_motor_eyes:' + intersecting_handler.name,
+                                     self.body_parts['eyes'], intersecting_handler)
+                    schedule_chart.add_node(move_eyes)
+                    operator_idx += 1
+
+                    move_eyes.execute()
+
+                    self.__draw_all()
+
+                    schedule_chart.add_edge(encode_operator, move_eyes)
+
+                    if previous_motor_eyes_operator is not None:
+                        schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
+
+                    previous_motor_eyes_operator = move_eyes
+
                 else:
-                    phrase = phrase + ' '
+                    # We encoded the handler in time. Update VSTM and LTM.
+                    activate_target_location = ActivateTargetLocation(
+                        str(operator_idx) + '_activate:' + encode_operator.target.name, self.body_parts['ltm'],
+                        current_keyboard, encode_operator.target.name, encode_operator.target)
 
-        words = phrase.split("|")
+                    self.compute_duration(schedule_chart)
+                    # self.draw_schedule_graph(phrase, schedule_chart)
 
-        for word in words:
-            print("Input: " + word)
-            # Move eyes to the phrase.
-            phrase_textbox = self.handler.find_descendant('phrase_textbox')
-            move_eyes = Move(str(operator_idx) + '_motor_eyes:' + phrase_textbox.name, self.body_parts['eyes'],
-                             phrase_textbox)
-            schedule_chart.add_node(move_eyes)
+                    schedule_chart.add_node(activate_target_location)
+                    operator_idx += 1
+
+                    activate_target_location.start_time = encode_operator.end_time
+
+                    activate_target_location.execute()
+
+                    if previous_cognitive_operator is not None:
+                        schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
+
+                    schedule_chart.add_edge(encode_operator, activate_target_location)
+
+                    previous_cognitive_operator = activate_target_location
+
+        self.__draw_all()
+
+        perceive_word = Perceptual(str(operator_idx) + '_perceptual:' + 'task', self.body_parts['eyes'])
+        perceive_word.duration = perceive_word.duration * len(word)
+        perceive_word.execute()
+        schedule_chart.add_node(perceive_word)
+        operator_idx += 1
+
+        process_word = Cognitive(str(operator_idx) + '_cognitive:' + 'task', None)
+        process_word.duration = process_word.duration * len(word)
+        process_word.execute()
+        schedule_chart.add_node(process_word)
+        operator_idx += 1
+
+        if previous_cognitive_operator is not None:
+            schedule_chart.add_edge(previous_cognitive_operator, perceive_word)
+
+        schedule_chart.add_edge(perceive_word, process_word)
+
+        if previous_perceptual_operator is not None:
+            schedule_chart.add_edge(previous_perceptual_operator, perceive_word)
+
+        if previous_perceptual_word_operator is not None:
+            schedule_chart.add_edge(previous_perceptual_word_operator, perceive_word)
+
+        if previous_motor_finger_operator is not None:
+            schedule_chart.add_edge(previous_motor_finger_operator, process_word)
+
+        previous_perceptual_word_operator = perceive_word
+        previous_perceptual_operator = perceive_word
+        previous_cognitive_operator = process_word
+
+        for character in word:
+            target = self.handler.find_descendant(character)
+
+            # Locate target using LTM vs. visual search.
+
+            # LTM
+            retrieve_target_location = RetrieveTargetLocation(str(operator_idx) + '_retrieve:' + character,
+                                                              self.body_parts['ltm'], character)
             operator_idx += 1
 
-            move_eyes.execute()
+            # Before execution retrieval we need to update the current critical path timestamp. The timestamp would be the end time of the previous cognitive operator.
 
-            if previous_cognitive_operator is not None:
-                schedule_chart.add_edge(previous_cognitive_operator, move_eyes)
+            # self.draw_schedule_graph(phrase, schedule_chart)
 
-            if previous_perceptual_operator is not None:
-                schedule_chart.add_edge(previous_perceptual_operator, move_eyes)
+            retrieve_target_location.start_time = previous_cognitive_operator.end_time
 
-            if previous_motor_eyes_operator is not None:
-                schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
+            current_retrieve_previous_cognitive_operator = previous_cognitive_operator
 
-            previous_motor_eyes_operator = move_eyes
+            retrieve_target_location.execute()
 
-            # Find which target we intersect with.
-            intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
-            intersecting_handler = self.handler.find_intersect(intersecting_event)
+            if retrieve_target_location.device:
+                assert(retrieve_target_location.device == current_keyboard)
 
-            if intersecting_handler is not None:
+            # We know the duration of LTM, but we do not add it to the schedule chart until it is shorter than visual search.
+            # Instead, start visual search. Any component of the visual search that is less than LTM retrieval will be included in the schedule chart.
+            visual_search_duration = 0
+            is_found = False
+            # TODO
+            while not (is_found) and (visual_search_duration < retrieve_target_location.duration):
+                # print(retrieve_target_location.duration, " ", visual_search_duration)
 
-                encode_operator = None
-
-                while encode_operator is None or encode_operator.initiate_saccade:
+                # Find which target we intersect with.
+                intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
+                intersecting_handler = self.handler.find_intersect(intersecting_event)
+                if intersecting_handler is not None:
                     # This should always be true; otherwise, we have gone out of the environment.
                     encode_operator = Encode(str(operator_idx) + '_encode:' + intersecting_handler.name,
                                              self.body_parts['eyes'], intersecting_handler)
-                    schedule_chart.add_node(encode_operator)
                     operator_idx += 1
 
-                    encode_operator.execute()
+                    # If we find before the any  saccade can start, then  simply skip scanning.
+                    if retrieve_target_location.duration < encode_operator.t_prep:
+                        break
 
-                    if previous_perceptual_operator is not None:
-                        schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
+                    encode_operator.execute()
+                    visual_search_duration += encode_operator.duration
+
+                    if visual_search_duration >= retrieve_target_location.duration:
+                        # if the encoding is taking too long, just end it.
+                        break
+
+                    schedule_chart.add_node(encode_operator)
+
+                    schedule_chart.add_edge(previous_cognitive_operator, encode_operator)
+                    schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
 
                     if previous_motor_eyes_operator is not None:
                         schedule_chart.add_edge(previous_motor_eyes_operator, encode_operator)
@@ -161,6 +295,8 @@ class Human():
                         move_eyes.execute()
 
                         self.__draw_all()
+
+                        visual_search_duration += move_eyes.duration
 
                         schedule_chart.add_edge(encode_operator, move_eyes)
 
@@ -182,101 +318,182 @@ class Human():
                         schedule_chart.add_node(activate_target_location)
                         operator_idx += 1
 
-                        activate_target_location.start_time = encode_operator.end_time
+                        activate_target_location.start_time = max(previous_cognitive_operator.end_time,
+                                                                  encode_operator.end_time)
 
                         activate_target_location.execute()
 
-                        if previous_cognitive_operator is not None:
-                            schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
+                        visual_search_duration += activate_target_location.duration
 
+                        schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
                         schedule_chart.add_edge(encode_operator, activate_target_location)
 
                         previous_cognitive_operator = activate_target_location
 
-            self.__draw_all()
+                        # Now need to check if this is our target.
+                        if encode_operator.target.name == target.name:
+                            # We found the target and can move the finger to it.
+                            is_found = True
+                        else:
+                            # This was not what we were looking for. Continue visual search.
 
-            perceive_word = Perceptual(str(operator_idx) + '_perceptual:' + word, self.body_parts['eyes'])
-            perceive_word.duration = perceive_word.duration * len(word.split(' '))
-            perceive_word.execute()
-            schedule_chart.add_node(perceive_word)
+                            current_fixation_x = self.body_parts['eyes'].fixation_x
+                            current_fixation_y = self.body_parts['eyes'].fixation_y
+
+                            next_fixation_x = 0
+                            next_fixation_y = 0
+
+                            # TODO: Implement visual search strategy.
+                            # ------------------------------------------------------------------------------------------------------------------------------------
+
+                            next_fixation = None
+                            handler_at_next_fixation = None
+                            current_position_x = self.body_parts['eyes'].fixation_x
+                            current_position_y = self.body_parts['eyes'].fixation_y
+                            position_middle = 468
+                            line_1 = 1402
+                            line_2 = line_1 + 150
+                            line_3 = line_2 + 150
+                            line_4 = line_3 + 150
+                            lines = [line_1, line_2, line_3, line_4, ]
+
+                            key_width = 90
+
+                            # The method # 1 is to find neighbor keys following a bivariate normal distribution
+                            # But this method will be stuck in p, q or del for a long time. In the worst case,
+                            # it will be almost unlike to to get to the desired key such as q from del when all 20 capacity of
+                            # vstm stores the keys between them. Therefore, I switched to a method corresponding to my habit of visual search.
+
+                            if self.handler.find_intersect(Event(current_position_x, current_position_y)).name[
+                               :14] == 'phrase_textbox':
+                                while self.handler.find_intersect(
+                                        Event(current_position_x, current_position_y)).name not in ascii_lowercase:
+                                    current_position_y += key_width
+                                # print("Eye move to  ", self.handler.find_intersect(Event(current_position_x, current_position_y)).name,current_position_y)
+
+                            import random
+                            from numpy.random import multivariate_normal
+                            findFlag = False
+                            while not findFlag:
+                                next_fixation_x = np.random.normal(current_position_x, self.visual_search_sigma)
+                                next_fixation_y = np.random.normal(current_position_y, self.visual_search_sigma)
+
+                                handler_at_next_fixation = self.handler.find_intersect(
+                                    Event(next_fixation_x, next_fixation_y))
+                                if handler_at_next_fixation.name not in ['device', 'touchscreen',
+                                                                         'keyboard'] + list(
+                                        self.body_parts['vstm'].store.keys()) or \
+                                        handler_at_next_fixation.name is target.name:
+                                    findFlag = True
+
+                            # print(handler_at_next_fixation.name)
+
+                            # ----------------------------------------------------------------------------------------------------------------------------------------------- #
+
+                            # The method # 2 is to find next fixation by looking along one line by another randomly.
+                            # I tend to glance horizontally, therefore I randomly choose one line from totally 4 lines, to search desired key within that line. Repeat thie until
+                            # I find target.
+                            '''
+                            def search(x, y, direction):
+                                while self.handler.find_intersect(Event(x, y)).name not in ['device', 'touchscreen', 'keyboard']:
+                                    if  self.handler.find_intersect(Event(x, y)).name not in list(self.body_parts['vstm'].store.keys()) + ['device', 'touchscreen', 'keyboard'] or \
+                                        self.handler.find_intersect(Event(x, y)).name == targe.name:
+                                        return self.handler.find_intersect(Event(x, y))
+                                    if direction == 'left':
+                                        x -= key_width
+                                    if direction == 'right':
+                                        x += key_width
+                                return None
+
+                            import random
+
+                            while handler_at_next_fixation is None:
+                                line_id = random.randint(0,3)
+                                handler_at_next_fixation = search(position_middle, lines[line_id],  'left')
+                                if handler_at_next_fixation is None:
+                                    handler_at_next_fixation = search(position_middle, lines[line_id], 'right')
+
+                            
+                            if handler_at_next_fixation is None:
+                                raise ValueError("No valid next fixation")
+                            '''
+
+                            # ------------------------------------------------------------------------------------------------------------------------------------
+
+                            move_eyes = Move(str(operator_idx) + '_motor_eyes:' + handler_at_next_fixation.name,
+                                             self.body_parts['eyes'], handler_at_next_fixation)
+                            schedule_chart.add_node(move_eyes)
+                            operator_idx += 1
+
+                            move_eyes.execute()
+
+                            self.__draw_all()
+
+                            visual_search_duration += move_eyes.duration
+
+                            schedule_chart.add_edge(previous_cognitive_operator, move_eyes)
+
+                            if previous_motor_eyes_operator is not None:
+                                schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
+
+                            previous_motor_eyes_operator = move_eyes
+
+            move_finger = Move(str(operator_idx) + '_motor_finger:' + character, self.body_parts['thumb'], target)
+            schedule_chart.add_node(move_finger)
             operator_idx += 1
 
-            process_word = Cognitive(str(operator_idx) + '_cognitive:' + word, self.body_parts['vstm'])
-            process_word.duration = process_word.duration * len(word.split(' '))
-            process_word.execute()
-            schedule_chart.add_node(process_word)
-            operator_idx += 1
+            if not is_found:
+                # Visual search could not find it before LTM. Add LTM-based congnitive operator to the schedule chart.
+                schedule_chart.add_node(retrieve_target_location)
 
-            if previous_cognitive_operator is not None:
-                schedule_chart.add_edge(previous_cognitive_operator, perceive_word)
+                self.body_parts['vstm'].put(target.name, retrieve_target_location.symbol_location)
 
-            schedule_chart.add_edge(perceive_word, process_word)
-
-            if previous_perceptual_operator is not None:
-                schedule_chart.add_edge(previous_perceptual_operator, perceive_word)
-
-            if previous_perceptual_word_operator is not None:
-                schedule_chart.add_edge(previous_perceptual_word_operator, perceive_word)
-
-            if previous_motor_finger_operator is not None:
-                schedule_chart.add_edge(previous_motor_finger_operator, process_word)
-
-            previous_perceptual_word_operator = perceive_word
-            previous_perceptual_operator = perceive_word
-            previous_cognitive_operator = process_word
-
-            for character in (word + ' '):
-                target = self.handler.find_descendant(character)
-
-                # Locate target using LTM vs. visual search.
-
-                # LTM
-                retrieve_target_location = RetrieveTargetLocation(str(operator_idx) + '_retrieve:' + character,
-                                                                  self.body_parts['ltm'], self.body_parts['vstm'],
-                                                                  character, self.timestamp_offset)
+                # Move fixation to the target.
+                move_eyes = Move(str(operator_idx) + '_motor_eyes:' + character, self.body_parts['eyes'],
+                                 retrieve_target_location.symbol_location)
+                schedule_chart.add_node(move_eyes)
                 operator_idx += 1
 
-                # Before execution retrieval we need to update the current critical path timestamp. The timestamp would be the end time of the previous cognitive operator.
+                move_eyes.execute()
 
-                # self.draw_schedule_graph(phrase, schedule_chart)
+                self.__draw_all()
 
-                retrieve_target_location.start_time = previous_cognitive_operator.end_time
+                if current_retrieve_previous_cognitive_operator is not None:
+                    schedule_chart.add_edge(current_retrieve_previous_cognitive_operator, retrieve_target_location)
 
-                current_retrieve_previous_cognitive_operator = previous_cognitive_operator
+                if previous_cognitive_retrieve_operator is not None:
+                    schedule_chart.add_edge(previous_cognitive_retrieve_operator, retrieve_target_location)
 
-                retrieve_target_location.execute()
+                schedule_chart.add_edge(retrieve_target_location, move_eyes)
+                schedule_chart.add_edge(retrieve_target_location, move_finger)
 
-                # We know the duration of LTM, but we do not add it to the schedule chart until it is shorter than visual search.
-                # Instead, start visual search. Any component of the visual search that is less than LTM retrieval will be included in the schedule chart.
-                visual_search_duration = 0
-                is_found = False
-                while not (is_found) and (visual_search_duration < retrieve_target_location.duration):
-                    # print(retrieve_target_location.duration, " ", visual_search_duration)
+                if previous_motor_eyes_operator is not None:
+                    schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
 
-                    # Find which target we intersect with.
-                    intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
-                    intersecting_handler = self.handler.find_intersect(intersecting_event)
-                    if intersecting_handler is not None:
+                previous_cognitive_operator = retrieve_target_location
+                previous_cognitive_retrieve_operator = retrieve_target_location
+
+                previous_motor_eyes_operator = move_eyes
+
+                # Find which target we intersect with.
+                intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
+                intersecting_handler = self.handler.find_intersect(intersecting_event)
+
+                if intersecting_handler is not None:
+
+                    encode_operator = None
+
+                    while encode_operator is None or encode_operator.initiate_saccade:
                         # This should always be true; otherwise, we have gone out of the environment.
                         encode_operator = Encode(str(operator_idx) + '_encode:' + intersecting_handler.name,
                                                  self.body_parts['eyes'], intersecting_handler)
+                        schedule_chart.add_node(encode_operator)
                         operator_idx += 1
 
-                        # If we find before the any  saccade can start, then  simply skip scanning.
-                        if retrieve_target_location.duration < encode_operator.t_prep:
-                            break
-
                         encode_operator.execute()
-                        visual_search_duration += encode_operator.duration
 
-                        if visual_search_duration >= retrieve_target_location.duration:
-                            # if the encoding is taking too long, just end it.
-                            break
-
-                        schedule_chart.add_node(encode_operator)
-
-                        schedule_chart.add_edge(previous_cognitive_operator, encode_operator)
-                        schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
+                        if previous_perceptual_operator is not None:
+                            schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
 
                         if previous_motor_eyes_operator is not None:
                             schedule_chart.add_edge(previous_motor_eyes_operator, encode_operator)
@@ -306,9 +523,9 @@ class Human():
                         else:
                             # We encoded the handler in time. Update VSTM and LTM.
                             activate_target_location = ActivateTargetLocation(
-                                str(operator_idx) + '_activate:' + encode_operator.target.name, self.body_parts['ltm'],
-                                self.body_parts['vstm'], encode_operator.target.name, encode_operator.target,
-                                self.timestamp_offset)
+                                str(operator_idx) + '_activate:' + encode_operator.target.name,
+                                self.body_parts['ltm'], self.body_parts['vstm'], encode_operator.target.name,
+                                encode_operator.target, self.timestamp_offset)
 
                             self.compute_duration(schedule_chart)
                             # self.draw_schedule_graph(phrase, schedule_chart)
@@ -316,253 +533,38 @@ class Human():
                             schedule_chart.add_node(activate_target_location)
                             operator_idx += 1
 
-                            activate_target_location.start_time = max(previous_cognitive_operator.end_time,
-                                                                      encode_operator.end_time)
+                            activate_target_location.start_time = encode_operator.end_time
 
                             activate_target_location.execute()
 
-                            visual_search_duration += activate_target_location.duration
+                            if previous_cognitive_operator is not None:
+                                schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
 
-                            schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
                             schedule_chart.add_edge(encode_operator, activate_target_location)
 
                             previous_cognitive_operator = activate_target_location
 
-                            # Now need to check if this is our target.
-                            if encode_operator.target.name == target.name:
-                                # We found the target and can move the finger to it.
-                                is_found = True
-                            else:
-                                # This was not what we were looking for. Continue visual search.
+            move_finger.execute()
+            # change keyboard screen
+            if target.name in key2device:
+                for keyboard in self.handler.children:
+                    if keyboard.name == current_keyboard:
+                        keyboard.printSwitch = False
+                    elif keyboard.name == key2device[target.name]:
+                        keyboard.printSwitch = True
+                        current_keyboard = keyboard.name
+            self.__draw_all()
 
-                                current_fixation_x = self.body_parts['eyes'].fixation_x
-                                current_fixation_y = self.body_parts['eyes'].fixation_y
+            if previous_perceptual_operator is not None:
+                schedule_chart.add_edge(previous_perceptual_operator, move_finger)
 
-                                next_fixation_x = 0
-                                next_fixation_y = 0
+            if previous_cognitive_operator is not None:
+                schedule_chart.add_edge(previous_cognitive_operator, move_finger)
 
-                                # TODO: Implement visual search strategy.
-                                # ------------------------------------------------------------------------------------------------------------------------------------
+            if previous_motor_finger_operator is not None:
+                schedule_chart.add_edge(previous_motor_finger_operator, move_finger)
 
-                                next_fixation = None
-                                handler_at_next_fixation = None
-                                current_position_x = self.body_parts['eyes'].fixation_x
-                                current_position_y = self.body_parts['eyes'].fixation_y
-                                position_middle = 468
-                                line_1 = 1402
-                                line_2 = line_1 + 150
-                                line_3 = line_2 + 150
-                                line_4 = line_3 + 150
-                                lines = [line_1, line_2, line_3, line_4, ]
-
-                                key_width = 90
-
-                                # The method # 1 is to find neighbor keys following a bivariate normal distribution
-                                # But this method will be stuck in p, q or del for a long time. In the worst case,
-                                # it will be almost unlike to to get to the desired key such as q from del when all 20 capacity of
-                                # vstm stores the keys between them. Therefore, I switched to a method corresponding to my habit of visual search.
-
-                                if self.handler.find_intersect(Event(current_position_x, current_position_y)).name[
-                                   :14] == 'phrase_textbox':
-                                    while self.handler.find_intersect(
-                                            Event(current_position_x, current_position_y)).name not in ascii_lowercase:
-                                        current_position_y += key_width
-                                    # print("Eye move to  ", self.handler.find_intersect(Event(current_position_x, current_position_y)).name,current_position_y)
-
-                                import random
-                                from numpy.random import multivariate_normal
-                                findFlag = False
-                                while not findFlag:
-                                    next_fixation_x = np.random.normal(current_position_x, self.visual_search_sigma)
-                                    next_fixation_y = np.random.normal(current_position_y, self.visual_search_sigma)
-
-                                    handler_at_next_fixation = self.handler.find_intersect(
-                                        Event(next_fixation_x, next_fixation_y))
-                                    if handler_at_next_fixation.name not in ['device', 'touchscreen',
-                                                                             'keyboard'] + list(
-                                            self.body_parts['vstm'].store.keys()) or \
-                                            handler_at_next_fixation.name is target.name:
-                                        findFlag = True
-
-                                # print(handler_at_next_fixation.name)
-
-                                # ----------------------------------------------------------------------------------------------------------------------------------------------- #
-
-                                # The method # 2 is to find next fixation by looking along one line by another randomly.
-                                # I tend to glance horizontally, therefore I randomly choose one line from totally 4 lines, to search desired key within that line. Repeat thie until
-                                # I find target.
-                                '''
-								def search(x, y, direction):
-									while self.handler.find_intersect(Event(x, y)).name not in ['device', 'touchscreen', 'keyboard']:
-										if  self.handler.find_intersect(Event(x, y)).name not in list(self.body_parts['vstm'].store.keys()) + ['device', 'touchscreen', 'keyboard'] or \
-											self.handler.find_intersect(Event(x, y)).name == targe.name:
-											return self.handler.find_intersect(Event(x, y))
-										if direction == 'left':
-											x -= key_width
-										if direction == 'right':
-											x += key_width
-									return None
-
-								import random
-
-								while handler_at_next_fixation is None:
-									line_id = random.randint(0,3)
-									handler_at_next_fixation = search(position_middle, lines[line_id],  'left')
-									if handler_at_next_fixation is None:
-										handler_at_next_fixation = search(position_middle, lines[line_id], 'right')
-
-								
-								if handler_at_next_fixation is None:
-									raise ValueError("No valid next fixation")
-								'''
-
-                                # ------------------------------------------------------------------------------------------------------------------------------------
-
-                                move_eyes = Move(str(operator_idx) + '_motor_eyes:' + handler_at_next_fixation.name,
-                                                 self.body_parts['eyes'], handler_at_next_fixation)
-                                schedule_chart.add_node(move_eyes)
-                                operator_idx += 1
-
-                                move_eyes.execute()
-
-                                self.__draw_all()
-
-                                visual_search_duration += move_eyes.duration
-
-                                schedule_chart.add_edge(previous_cognitive_operator, move_eyes)
-
-                                if previous_motor_eyes_operator is not None:
-                                    schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
-
-                                previous_motor_eyes_operator = move_eyes
-
-                move_finger = Move(str(operator_idx) + '_motor_finger:' + character, self.body_parts['thumb'], target)
-                schedule_chart.add_node(move_finger)
-                operator_idx += 1
-
-                if not is_found:
-                    # Visual search could not find it before LTM. Add LTM-based congnitive operator to the schedule chart.
-                    schedule_chart.add_node(retrieve_target_location)
-
-                    self.body_parts['vstm'].put(target.name, retrieve_target_location.symbol_location)
-
-                    # Move fixation to the target.
-                    move_eyes = Move(str(operator_idx) + '_motor_eyes:' + character, self.body_parts['eyes'],
-                                     retrieve_target_location.symbol_location)
-                    schedule_chart.add_node(move_eyes)
-                    operator_idx += 1
-
-                    move_eyes.execute()
-
-                    self.__draw_all()
-
-                    if current_retrieve_previous_cognitive_operator is not None:
-                        schedule_chart.add_edge(current_retrieve_previous_cognitive_operator, retrieve_target_location)
-
-                    if previous_cognitive_retrieve_operator is not None:
-                        schedule_chart.add_edge(previous_cognitive_retrieve_operator, retrieve_target_location)
-
-                    schedule_chart.add_edge(retrieve_target_location, move_eyes)
-                    schedule_chart.add_edge(retrieve_target_location, move_finger)
-
-                    if previous_motor_eyes_operator is not None:
-                        schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
-
-                    previous_cognitive_operator = retrieve_target_location
-                    previous_cognitive_retrieve_operator = retrieve_target_location
-
-                    previous_motor_eyes_operator = move_eyes
-
-                    # Find which target we intersect with.
-                    intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
-                    intersecting_handler = self.handler.find_intersect(intersecting_event)
-
-                    if intersecting_handler is not None:
-
-                        encode_operator = None
-
-                        while encode_operator is None or encode_operator.initiate_saccade:
-                            # This should always be true; otherwise, we have gone out of the environment.
-                            encode_operator = Encode(str(operator_idx) + '_encode:' + intersecting_handler.name,
-                                                     self.body_parts['eyes'], intersecting_handler)
-                            schedule_chart.add_node(encode_operator)
-                            operator_idx += 1
-
-                            encode_operator.execute()
-
-                            if previous_perceptual_operator is not None:
-                                schedule_chart.add_edge(previous_perceptual_operator, encode_operator)
-
-                            if previous_motor_eyes_operator is not None:
-                                schedule_chart.add_edge(previous_motor_eyes_operator, encode_operator)
-
-                            previous_perceptual_operator = encode_operator
-
-                            if encode_operator.initiate_saccade:
-                                # We did not encode the handler under the fixation point in time and we need another saccade.
-                                move_eyes = Move(str(operator_idx) + '_motor_eyes:' + intersecting_handler.name,
-                                                 self.body_parts['eyes'], intersecting_handler)
-                                schedule_chart.add_node(move_eyes)
-                                operator_idx += 1
-
-                                move_eyes.execute()
-
-                                self.__draw_all()
-
-                                visual_search_duration += move_eyes.duration
-
-                                schedule_chart.add_edge(encode_operator, move_eyes)
-
-                                if previous_motor_eyes_operator is not None:
-                                    schedule_chart.add_edge(previous_motor_eyes_operator, move_eyes)
-
-                                previous_motor_eyes_operator = move_eyes
-
-                            else:
-                                # We encoded the handler in time. Update VSTM and LTM.
-                                activate_target_location = ActivateTargetLocation(
-                                    str(operator_idx) + '_activate:' + encode_operator.target.name,
-                                    self.body_parts['ltm'], self.body_parts['vstm'], encode_operator.target.name,
-                                    encode_operator.target, self.timestamp_offset)
-
-                                self.compute_duration(schedule_chart)
-                                # self.draw_schedule_graph(phrase, schedule_chart)
-
-                                schedule_chart.add_node(activate_target_location)
-                                operator_idx += 1
-
-                                activate_target_location.start_time = encode_operator.end_time
-
-                                activate_target_location.execute()
-
-                                if previous_cognitive_operator is not None:
-                                    schedule_chart.add_edge(previous_cognitive_operator, activate_target_location)
-
-                                schedule_chart.add_edge(encode_operator, activate_target_location)
-
-                                previous_cognitive_operator = activate_target_location
-
-                move_finger.execute()
-                # change keyboard screen
-                if target.name in key2device:
-                    for keyboard in self.handler.children:
-                        if keyboard.name == current_keyboard:
-                            keybaord.printSwitch = False
-                        elif keyboard.name == key2device[target.name]:
-                            keyboard.printSwitch = True
-                            current_keyboard = keyboard.name
-                self.__draw_all()
-
-                if previous_perceptual_operator is not None:
-                    schedule_chart.add_edge(previous_perceptual_operator, move_finger)
-
-                if previous_cognitive_operator is not None:
-                    schedule_chart.add_edge(previous_cognitive_operator, move_finger)
-
-                if previous_motor_finger_operator is not None:
-                    schedule_chart.add_edge(previous_motor_finger_operator, move_finger)
-
-                previous_motor_finger_operator = move_finger
+            previous_motor_finger_operator = move_finger
 
         # Add a dummy operator for easier critical path calculation.
         dummy = OperatorElement('dummy', None)
@@ -729,14 +731,26 @@ class Human():
 
         for k in keyboard_1:
             expert_ltm_activations[k] = 10000.0
-            expert_store
-        for c in ascii_lowercase:
-            expert_ltm_activations[c] = (0.0, 10000.0)
-            expert_store[c] = environment.find_descendant(c)
+            expert_store[k] = ('keyboard_1', environment.find_descendant(k))
+
+        for k in keyboard_2:
+            expert_ltm_activations[k] = 10000.0
+            expert_store[k] = ('keyboard_1', environment.find_descendant(k))
+
+        for k in keyboard_3:
+            expert_ltm_activations[k] = 10000.0
+            expert_store[k] = ('keyboard_1', environment.find_descendant(k))
+
+        for k in keyboard_4:
+            expert_ltm_activations[k] = 10000.0
+            expert_store[k] = ('keyboard_1', environment.find_descendant(k))
+        # for c in ascii_lowercase:
+        #     expert_ltm_activations[c] = (0.0, 10000.0)
+        #     expert_store[c] = environment.find_descendant(c)
 
         human.create_ltm('ltm', store=expert_store, activations=expert_ltm_activations)  # Long term memory
 
-        human.create_stm('vstm')  # Short term memory
+        # human.create_stm('vstm')  # Short term memory
 
         return human
 
@@ -803,7 +817,7 @@ class LongTermMemory(BodyPart):
 
         return cognitive_operator.visit_ltm(self)
 
-    def put(self, symbol, device, value, error_trigger):
+    def put(self, symbol, device, value):
         ''' Simply updates the activation. This happens instantentiously. '''
         self.store[symbol] = (device, value)
         activation = None
@@ -932,55 +946,18 @@ class Finger(BodyPart):
         self.location_x = target_x
         self.location_y = target_y
 
-        move_event = MoveBodyPartEvent(self, target_x, target_y)
+        move_event = MoveBodyPartEvent(self, target_x, 0)
         self.handler.handle(move_event)
+
+        #error touch
         prob = 0.2
-        result = np.choice(2, p=[prob, 1 - prob])
+        result = np.random.choice(2, p=[prob, 1 - prob])
         while result == 0:
             duration += 100
             prob = prob * prob
-            result = np.choice(2, p=[prob, 1 - prob])
+            result = np.random.choice(2, p=[prob, 1 - prob])
         return duration
 
-        # ---------------------------------------------------------------------------- #
-        # Failed to implement aversion of error typing version
-        '''
-		target_x = target.top_left_x + target.width/2
-		target_y = target.top_left_y + target.height/2
-		key_height = target.height
-		distance = math.sqrt((target_x-self.location_x)**2 + (target_y-self.location_y)**2)
-		if distance == 0:
-			duration = a
-			return duration
-		sigma = 150
-		sigma_a = 15
-		width_direction = math.sqrt(2*math.pi * math.e * (sigma**2 - sigma_a**2)) 
-		duration = self.a + self.b * math.log(1 + distance/width_direction, 2)
-		
-		
-		if target.name != 'del' and (self.location_x != 832.5 and self.location_y != 337.5): # avoid infinite loop for computing MT_del and CT_correct. When target is 'del' or the currecnt is 'del', just return duration
-			a_ = 200 # model is quite senstive for a_. When a_=230, result is 27.9. When a_=200, result is 29.7 
-			b_ = 200
-			MTs = range(0, 4000, 10) # duration is from 0-1000. But to make sure, I set the range from 0-4000
-			P_e_s = [1 - math.erf( (2.066 * (width_direction / distance) * (2**((MT-a_)/b_) - 1) ) / (math.sqrt(2)) ) for MT in MTs]
-
-			device = TouchScreenKeyboardDeviceDirector.construct('device', 'device', 0, 0, 960, 2160, 30, 270)
-			virtual_human = Human(device) # create a virtual human that make mistake by the probability of P_e
-			virtual_wrong_finger = virtual_human.create_finger('thumb', self.location_x, self.location_y) # create the human's finger at current position
-			M_del = Move("del", virtual_wrong_finger, virtual_human.handler.children['touchscreen'].children['keyboard'].children['del']) # create motor opeartor to press del
-			M_del.execute()
-			MT_del = M_del.duration
-			C_tap = a_ # approximate c_tap by a_, since even if there is a wrong touch when pressing del, the distance to del should be quite close
-			C_correct = Move(target.name, virtual_wrong_finger, virtual_human.handler.children['touchscreen'].children['keyboard'].children[target.name]) # create a motor operator to press the correct target from del
-			C_correct.execute()
-			CT_correct = C_correct.duration 
-			CT = [MT + P_e * ( 2 * MT_del + C_tap + CT_correct) for MT, P_e in zip(MTs, P_e_s)] # generate a list containing function values f with respect to different MT
-
-			duration = MTs[CT.index(min(CT))] # duration is the argmin f, i.e. the MT making function value minimal.
-		return duration
-		'''
-
-    # ---------------------------------------------------------------------------- #
 
     def visit_interface(self, interface):
         return interface.press()
@@ -1043,7 +1020,7 @@ class Eyes(BodyPart):
         duration = self.t_prep + self.t_exec + D * self.t_sacc  # TODO: compute duration.
 
         self.fixation_x = np.random.normal(target_x, self.saccade_noise_sigma)
-        self.fixation_y = np.random.normal(target_y, self.saccade_noise_sigma)
+        self.fixation_y = 0
 
         move_event = MoveBodyPartEvent(self, self.fixation_x, self.fixation_y)
         self.handler.handle(move_event)

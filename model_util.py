@@ -34,25 +34,27 @@ class EventHandler():
 		else:
 			return False
 
-	def find_intersect(self, event):
+	def find_intersect(self, event, keyboard):
 		''' Default way to find the intersecting child on top--simply delegate to all children. Retunrs intersecting handler in coordinates relative to the self. Subclasses can choose to implement their own.'''
 
 		intersecting_handler = None
+		keyboard = self.children['touchscreen'].children[keyboard]
 
-		for child in self.children.values():
+		for child in keyboard.children.values():
 			if self.__intersects(event.x, event.y, child):
-				translated_event = self.__translate(child, event)
-				intersecting_handler = child.find_intersect(translated_event)
-
-				if intersecting_handler is not None:
-					# Translate.
-					intersecting_handler.top_left_x += self.top_left_x
-					intersecting_handler.top_left_y += self.top_left_y
-
-					break;
-
-		if intersecting_handler is None:
-			intersecting_handler = self.copy()
+				intersecting_handler = child.copy()
+				# translated_event = self.__translate(child, event)
+				# intersecting_handler = child.find_intersect(translated_event)
+				#
+				# if intersecting_handler is not None:
+				# 	# Translate.
+				# 	intersecting_handler.top_left_x += self.top_left_x
+				# 	intersecting_handler.top_left_y += self.top_left_y
+				#
+				# 	break
+		#
+		# if intersecting_handler is None:
+		# 	intersecting_handler = self.copy()
 				
 		return intersecting_handler
 			

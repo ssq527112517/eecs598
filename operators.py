@@ -81,7 +81,7 @@ class Encode(Visual):
 
 		epsilon = math.acos(theta)
 
-		self.duration =  self.K * (-math.log(self.f)) * (math.e ** (self.k * epsilon)) # TODO: Calculate the time it takes to encode the target.
+		self.duration = self.K * (-math.log(self.f)) * (math.e ** (self.k * epsilon)) # TODO: Calculate the time it takes to encode the target.
 
 		return self.duration
 
@@ -113,22 +113,14 @@ class Cognitive(OperatorElement):
 
 class RetrieveTargetLocation(Cognitive):
 
-	def __init__(self, name, ltm, vstm, symbol,  timestamp_offset):
+	def __init__(self, name, ltm, symbol):
 		super(RetrieveTargetLocation, self).__init__(name, ltm)
 		self.symbol = symbol
 		self.symbol_location = None
-		self.vstm = vstm
-
-		self.timestamp_offset = timestamp_offset
 
 	def execute(self):
-		# First check if it vstm.
-		self.duration, self.symbol_location = self.vstm.accept(self)
 
-		# If not then check LTM.
-		if self.symbol_location is None:
-			# self.body_part refers to ltm, why not call get() here ???????
-			self.duration, self.device, self.symbol_location = self.body_part.accept(self)
+		self.duration, self.device, self.symbol_location = self.body_part.accept(self)
 
 		return (self.device, self.duration)
 
@@ -144,22 +136,19 @@ class RetrieveTargetLocation(Cognitive):
 
 class ActivateTargetLocation(Cognitive):
 
-	def __init__(self, name, ltm, vstm, symbol, symbol_location, timestamp_offset):
+	def __init__(self, name, ltm, keyboard, symbol, symbol_location):
 		super(ActivateTargetLocation, self).__init__(name, ltm)
 		self.symbol = symbol
 		self.symbol_location = symbol_location
-		self.vstm = vstm
-
-		self.timestamp_offset = timestamp_offset
+		self.keyboard = keyboard
 
 	def execute(self):
 		self.duration = self.body_part.accept(self)
-		self.duration += self.vstm.accept(self)
 
 		return self.duration
 
 	def visit_ltm(self, ltm):
-		self.duration = ltm.put(self.symbol, self.symbol_location, self.start_time + self.timestamp_offset)
+		self.duration = ltm.put(self.symbol, self.keyboard, self.symbol_location)
 
 		return self.duration
 
