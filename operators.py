@@ -127,14 +127,15 @@ class RetrieveTargetLocation(Cognitive):
 
 		# If not then check LTM.
 		if self.symbol_location is None:
-			self.duration, self.symbol_location = self.body_part.accept(self)
+			# self.body_part refers to ltm, why not call get() here ???????
+			self.duration, self.device, self.symbol_location = self.body_part.accept(self)
 
-		return self.duration
+		return (self.device, self.duration)
 
 	def visit_ltm(self, ltm):
-		self.duration, self.symbol_location = ltm.get(self.symbol, self.start_time + self.timestamp_offset)
+		self.duration, self.device, self.symbol_location = ltm.get(self.symbol)
 
-		return (self.duration, self.symbol_location)
+		return (self.duration, self.device, self.symbol_location)
 
 	def visit_stm(self, stm):
 		self.duration, self.symbol_location = stm.get(self.symbol)

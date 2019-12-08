@@ -47,13 +47,13 @@ def constructKeyboard(keyboard, TOUCHBAR_OPTION=1):
 	default_key_height = 170
 	default_touchbar_height = 70
 	if TOUCHBAR_OPTION == 1:
-		touchbar = ['esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright','volumn','mute','siri']
+		touchbar = ['esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright_1','volumn_1','mute_1','siri_1']
 	elif TOUCHBAR_OPTION == 2:
-		touchbar = ['End Show', 'slides', 'time', 'rehearse', "<",'bright','volumn','mute','siri']
+		touchbar = ['End Show', 'slides', 'time', 'rehearse', "<",'bright_2','volumn_2','mute_2','siri_2']
 	elif TOUCHBAR_OPTION == 3:
-		touchbar = ['bright-', 'slider', 'bright+', 'out']
+		touchbar = ['bright-', 'slider', 'bright+', 'out_3']
 	elif TOUCHBAR_OPTION == 4:
-		touchbar = ['out', 'light-', 'light+', 'layout', 'launchpad', 'keylight-', 'keylight+', '<<', '>||', '>>', 'mute', 'vol-', 'vol+', 'siri']
+		touchbar = ['out_4', 'light-', 'light+', 'layout', 'launchpad', 'keylight-', 'keylight+', '<<', '>||', '>>', 'mute_4', 'vol-', 'vol+', 'siri_4']
 
 	key_rows = [touchbar,\
 	["~\n`",'1','2','3','4','5','6','7','8','9','0',"_\n-","+\n=",'del'],\
