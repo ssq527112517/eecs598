@@ -64,25 +64,28 @@ class Encode(Visual):
 		''' Executes encoding of a target, stores the target in the short term memory, and returns the duration  of the  operatoion. '''
 
 		# Convert the gaze into a vector with root at (self.body_part.location_x, self.body_part.location_y, 0).
-		current_x = self.body_part.fixation_x - self.body_part.location_x
-		current_y = self.body_part.fixation_y - self.body_part.location_y
-		current_z = self.body_part.handler_distance
+		# current_x = self.body_part.fixation_x - self.body_part.location_x
+		# current_y = self.body_part.fixation_y - self.body_part.location_y
+		# current_z = self.body_part.handler_distance
 
-		# Convert the target gaze into a vector with root at (self.body_part.location_x, self.body_part.location_y, 0).
-		target_x = self.target.top_left_x + self.target.width/2 - self.body_part.location_x
-		target_y = self.target.top_left_y + self.target.height/2 - self.body_part.location_y
-		target_z = self.body_part.handler_distance
+		# # Convert the target gaze into a vector with root at (self.body_part.location_x, self.body_part.location_y, 0).
+		# target_x = self.target.top_left_x + self.target.width/2 - self.body_part.location_x
+		# target_y = self.target.top_left_y + self.target.height/2 - self.body_part.location_y
+		# target_z = self.body_part.handler_distance
 
-		dot_product =  current_x*target_x + current_y*target_y + current_z*target_z
-		magnitude_current = math.sqrt(current_x**2 + current_y**2 + current_z**2)
-		magnitude_target = math.sqrt(target_x**2 + target_y**2 + target_z**2)
+		# dot_product =  current_x*target_x + current_y*target_y + current_z*target_z
+		# magnitude_current = math.sqrt(current_x**2 + current_y**2 + current_z**2)
+		# magnitude_target = math.sqrt(target_x**2 + target_y**2 + target_z**2)
 
-		theta = dot_product/(magnitude_current * magnitude_target)
+		# theta = dot_product/(magnitude_current * magnitude_target)
 
-		epsilon = math.acos(theta)
+		# epsilon = math.acos(theta)
 
-		self.duration = self.K * (-math.log(self.f)) * (math.e ** (self.k * epsilon)) # TODO: Calculate the time it takes to encode the target.
-
+		# self.duration = self.K * (-math.log(self.f)) * (math.e ** (self.k * epsilon)) # TODO: Calculate the time it takes to encode the target.
+		if target.name=="play" or target.name=="<" or target.name=="esc":
+			self.duration=1000
+		else:
+			self.duration=1311
 		return self.duration
 
 
