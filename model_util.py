@@ -29,7 +29,7 @@ class EventHandler():
 
 	def intersects(self, loc_x, loc_y):
 		''' Tests if a point intersects this handler.'''
-		if (loc_x > self.top_left_x and loc_x < self.top_left_x + self.width) and (loc_y > self.top_left_y and loc_y < self.top_left_y + self.height):
+		if loc_x > self.top_left_x and loc_x < self.top_left_x + self.width:
 			return True
 		else:
 			return False
@@ -43,6 +43,7 @@ class EventHandler():
 		for child in keyboard.children.values():
 			if self.__intersects(event.x, event.y, child):
 				intersecting_handler = child.copy()
+				break
 				# translated_event = self.__translate(child, event)
 				# intersecting_handler = child.find_intersect(translated_event)
 				#

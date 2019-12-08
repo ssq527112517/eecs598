@@ -18,8 +18,8 @@ def main(argv):
 	device = TouchScreenKeyboardDeviceDirector.construct('device', 'device', 0, 0, 2600, 1010, 0, 0)
 
 	# Create a human and associate it with the device, so that the device knows about any body part movements.
-	# human = Human.create_novice(device)
-	human = Human.create_expert(device) # TODO: to test your  implementation with an expert user, uncomment this line and comment the one above it.
+	human = Human.create_novice(device)
+	# human = Human.create_expert(device) # TODO: to test your  implementation with an expert user, uncomment this line and comment the one above it.
 
 	escape_key = device.find_descendant('esc')
 

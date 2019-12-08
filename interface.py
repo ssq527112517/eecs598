@@ -54,7 +54,8 @@ class KeyboardKey(Button):
 	
 	def press(self):
 		'''Change state of device to pressed, if successful'''
-		self.output.set_text(self.output.label + self.label)
+		return
+		#self.output.set_text(self.output.label + self.label)
 
 class KeyboardDeleteKey(Button):
 	def __init__(self, name, label, top_left_x, top_left_y, width, height, output):

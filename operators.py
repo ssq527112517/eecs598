@@ -82,11 +82,12 @@ class Encode(Visual):
 		# epsilon = math.acos(theta)
 
 		# self.duration = self.K * (-math.log(self.f)) * (math.e ** (self.k * epsilon)) # TODO: Calculate the time it takes to encode the target.
-		if target.name=="play" or target.name=="<" or target.name=="esc":
+		if self.target.name=="play" or self.target.name=="<" or self.target.name=="esc":
 			self.duration=1000
 		else:
 			self.duration=1311
-		return self.duration
+		self.duration = 0
+		return 0
 
 
 class Auditory(Perceptual):

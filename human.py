@@ -12,10 +12,11 @@ import matplotlib.patches as patches
 from device import Device, TouchScreenKeyboardDeviceDirector
 
 key2device = {
-    'play': 'keyboard_2',
-    '<': 'keyboard_3',
-    'vol+': 'keyboard_4',
-    'esc': 'keyboard_2'
+    'presentMode': 'keyboard_2',
+    '<': 'keyboard_4',
+    'bright_2': 'keyboard_3',
+    'esc': 'keyboard_2',
+    'out_4': 'keyboard_2',
 }
 
 touch_bar_keys = [ 'esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright_1','volumn_1','mute_1','siri_1',
@@ -252,19 +253,23 @@ class Human():
             visual_search_duration = 0
             is_found = False
             # TODO
+            escape_key = self.handler.find_descendant('esc')
+            move_eyes = Move(str(operator_idx) + '_motor_eyes:' + escape_key.name, self.body_parts['eyes'],
+                             escape_key)
+            move_eyes.execute()
             while not (is_found) and (visual_search_duration < retrieve_target_location.duration):
                 # print(retrieve_target_location.duration, " ", visual_search_duration)
-
+                # Move eyes to the phrase.
                 # Find which target we intersect with.
                 intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
-                intersecting_handler = self.handler.find_intersect(intersecting_event)
+                intersecting_handler = self.handler.find_intersect(intersecting_event, current_keyboard)
                 if intersecting_handler is not None:
                     # This should always be true; otherwise, we have gone out of the environment.
                     encode_operator = Encode(str(operator_idx) + '_encode:' + intersecting_handler.name,
                                              self.body_parts['eyes'], intersecting_handler)
                     operator_idx += 1
 
-                    # If we find before the any  saccade can start, then  simply skip scanning.
+                    # If we find before the any saccade can start, then  simply skip scanning.
                     if retrieve_target_location.duration < encode_operator.t_prep:
                         break
 
@@ -309,8 +314,7 @@ class Human():
                         # We encoded the handler in time. Update VSTM and LTM.
                         activate_target_location = ActivateTargetLocation(
                             str(operator_idx) + '_activate:' + encode_operator.target.name, self.body_parts['ltm'],
-                            self.body_parts['vstm'], encode_operator.target.name, encode_operator.target,
-                            self.timestamp_offset)
+                            current_keyboard, encode_operator.target.name, encode_operator.target)
 
                         self.compute_duration(schedule_chart)
                         # self.draw_schedule_graph(phrase, schedule_chart)
@@ -348,77 +352,28 @@ class Human():
 
                             next_fixation = None
                             handler_at_next_fixation = None
+
                             current_position_x = self.body_parts['eyes'].fixation_x
                             current_position_y = self.body_parts['eyes'].fixation_y
-                            position_middle = 468
-                            line_1 = 1402
-                            line_2 = line_1 + 150
-                            line_3 = line_2 + 150
-                            line_4 = line_3 + 150
-                            lines = [line_1, line_2, line_3, line_4, ]
+                            handle_at_current_fixation = self.handler.find_intersect(Event(current_position_x,
+                                                                                current_position_y), current_keyboard)
 
-                            key_width = 90
-
-                            # The method # 1 is to find neighbor keys following a bivariate normal distribution
-                            # But this method will be stuck in p, q or del for a long time. In the worst case,
-                            # it will be almost unlike to to get to the desired key such as q from del when all 20 capacity of
-                            # vstm stores the keys between them. Therefore, I switched to a method corresponding to my habit of visual search.
-
-                            if self.handler.find_intersect(Event(current_position_x, current_position_y)).name[
-                               :14] == 'phrase_textbox':
-                                while self.handler.find_intersect(
-                                        Event(current_position_x, current_position_y)).name not in ascii_lowercase:
-                                    current_position_y += key_width
-                                # print("Eye move to  ", self.handler.find_intersect(Event(current_position_x, current_position_y)).name,current_position_y)
-
+                            if target.name == '<':
+                                key_width = 4.9
+                            else:
+                                key_width = 30
+                            next_fixation_x = current_position_x
                             import random
                             from numpy.random import multivariate_normal
                             findFlag = False
                             while not findFlag:
-                                next_fixation_x = np.random.normal(current_position_x, self.visual_search_sigma)
-                                next_fixation_y = np.random.normal(current_position_y, self.visual_search_sigma)
+                                next_fixation_x = next_fixation_x + key_width
+                                next_fixation_y = 0
 
                                 handler_at_next_fixation = self.handler.find_intersect(
-                                    Event(next_fixation_x, next_fixation_y))
-                                if handler_at_next_fixation.name not in ['device', 'touchscreen',
-                                                                         'keyboard'] + list(
-                                        self.body_parts['vstm'].store.keys()) or \
-                                        handler_at_next_fixation.name is target.name:
+                                    Event(next_fixation_x, next_fixation_y), current_keyboard)
+                                if handle_at_current_fixation.name != handler_at_next_fixation.name or handler_at_next_fixation.name is target.name:
                                     findFlag = True
-
-                            # print(handler_at_next_fixation.name)
-
-                            # ----------------------------------------------------------------------------------------------------------------------------------------------- #
-
-                            # The method # 2 is to find next fixation by looking along one line by another randomly.
-                            # I tend to glance horizontally, therefore I randomly choose one line from totally 4 lines, to search desired key within that line. Repeat thie until
-                            # I find target.
-                            '''
-                            def search(x, y, direction):
-                                while self.handler.find_intersect(Event(x, y)).name not in ['device', 'touchscreen', 'keyboard']:
-                                    if  self.handler.find_intersect(Event(x, y)).name not in list(self.body_parts['vstm'].store.keys()) + ['device', 'touchscreen', 'keyboard'] or \
-                                        self.handler.find_intersect(Event(x, y)).name == targe.name:
-                                        return self.handler.find_intersect(Event(x, y))
-                                    if direction == 'left':
-                                        x -= key_width
-                                    if direction == 'right':
-                                        x += key_width
-                                return None
-
-                            import random
-
-                            while handler_at_next_fixation is None:
-                                line_id = random.randint(0,3)
-                                handler_at_next_fixation = search(position_middle, lines[line_id],  'left')
-                                if handler_at_next_fixation is None:
-                                    handler_at_next_fixation = search(position_middle, lines[line_id], 'right')
-
-                            
-                            if handler_at_next_fixation is None:
-                                raise ValueError("No valid next fixation")
-                            '''
-
-                            # ------------------------------------------------------------------------------------------------------------------------------------
 
                             move_eyes = Move(str(operator_idx) + '_motor_eyes:' + handler_at_next_fixation.name,
                                              self.body_parts['eyes'], handler_at_next_fixation)
@@ -446,7 +401,7 @@ class Human():
                 # Visual search could not find it before LTM. Add LTM-based congnitive operator to the schedule chart.
                 schedule_chart.add_node(retrieve_target_location)
 
-                self.body_parts['vstm'].put(target.name, retrieve_target_location.symbol_location)
+                # self.body_parts['vstm'].put(target.name, retrieve_target_location.symbol_location)
 
                 # Move fixation to the target.
                 move_eyes = Move(str(operator_idx) + '_motor_eyes:' + character, self.body_parts['eyes'],
@@ -477,7 +432,7 @@ class Human():
 
                 # Find which target we intersect with.
                 intersecting_event = Event(self.body_parts['eyes'].fixation_x, self.body_parts['eyes'].fixation_y)
-                intersecting_handler = self.handler.find_intersect(intersecting_event)
+                intersecting_handler = self.handler.find_intersect(intersecting_event, current_keyboard)
 
                 if intersecting_handler is not None:
 
@@ -524,8 +479,8 @@ class Human():
                             # We encoded the handler in time. Update VSTM and LTM.
                             activate_target_location = ActivateTargetLocation(
                                 str(operator_idx) + '_activate:' + encode_operator.target.name,
-                                self.body_parts['ltm'], self.body_parts['vstm'], encode_operator.target.name,
-                                encode_operator.target, self.timestamp_offset)
+                                self.body_parts['ltm'], current_keyboard, encode_operator.target.name,
+                                encode_operator.target)
 
                             self.compute_duration(schedule_chart)
                             # self.draw_schedule_graph(phrase, schedule_chart)
@@ -546,13 +501,13 @@ class Human():
 
             move_finger.execute()
             # change keyboard screen
-            if target.name in key2device:
-                for keyboard in self.handler.children:
-                    if keyboard.name == current_keyboard:
-                        keyboard.printSwitch = False
-                    elif keyboard.name == key2device[target.name]:
-                        keyboard.printSwitch = True
-                        current_keyboard = keyboard.name
+            if target.name in key2device.keys():
+                for keyboard in self.handler.children['touchscreen'].children:
+                    if keyboard == current_keyboard:
+                        self.handler.children['touchscreen'].children[keyboard].printSwitch = False
+                    elif keyboard == key2device[target.name]:
+                        self.handler.children['touchscreen'].children[keyboard].printSwitch = True
+                        current_keyboard = keyboard
             self.__draw_all()
 
             if previous_perceptual_operator is not None:
@@ -711,7 +666,7 @@ class Human():
         human.create_finger('thumb', 0, 0)
         human.create_eyes('eyes', 0, 0, 1000)
         human.create_ltm('ltm')  # Long term memory
-        human.create_stm('vstm')  # Short term memory
+        # human.create_stm('vstm')  # Short term memory
 
         return human
 
@@ -836,7 +791,7 @@ class LongTermMemory(BodyPart):
 
         return 0.0
 
-    def get(self, symbol, timestamp, error_trigger):
+    def get(self, symbol):
 
         activation = None
         symbol_location = None
@@ -1022,8 +977,8 @@ class Eyes(BodyPart):
         self.fixation_x = np.random.normal(target_x, self.saccade_noise_sigma)
         self.fixation_y = 0
 
-        move_event = MoveBodyPartEvent(self, self.fixation_x, self.fixation_y)
-        self.handler.handle(move_event)
+        # move_event = MoveBodyPartEvent(self, self.fixation_x, self.fixation_y)
+        # self.handler.handle(move_event)
 
         return duration
 
