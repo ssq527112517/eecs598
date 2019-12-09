@@ -29,18 +29,20 @@ class EventHandler():
 
 	def intersects(self, loc_x, loc_y):
 		''' Tests if a point intersects this handler.'''
-		if loc_x > self.top_left_x and loc_x < self.top_left_x + self.width:
+		if loc_x >= self.top_left_x and loc_x <= self.top_left_x + self.width:
 			return True
 		else:
 			return False
 
-	def find_intersect(self, event, keyboard):
+	def find_intersect(self, event, device):
 		''' Default way to find the intersecting child on top--simply delegate to all children. Retunrs intersecting handler in coordinates relative to the self. Subclasses can choose to implement their own.'''
 
 		intersecting_handler = None
-		keyboard = self.children['touchscreen'].children[keyboard]
+		keyboard = self.children['touchscreen'].children[device]
 
 		for child in keyboard.children.values():
+			if child.top_left_x > event.x:
+				return None
 			if self.__intersects(event.x, event.y, child):
 				intersecting_handler = child.copy()
 				break

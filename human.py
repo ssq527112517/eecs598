@@ -17,11 +17,12 @@ key2device = {
     'bright_2': 'keyboard_3',
     'esc': 'keyboard_2',
     'out_4': 'keyboard_2',
+    'out_3': 'keyboard_2',
 }
 
 touch_bar_keys = [ 'esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright_1','volumn_1','mute_1','siri_1',
                    'End Show', 'slides', 'time', 'rehearse', "<",'bright_2','volumn_2','mute_2','siri_2',
-                   'bright-', 'slider', 'bright+', 'out_3'
+                   'bright-', 'slider', 'bright+', 'out_3',
                    'out_4', 'light-', 'light+', 'layout', 'launchpad', 'keylight-', 'keylight+', '<<', '>||', '>>', 'mute_4', 'vol-', 'vol+', 'siri_4']
 
 keyboard_1 = ['esc','paste','newSlide','table','picture','shapes','TextBox','copy','presentMode',"<",'bright_1','volumn_1','mute_1','siri_1']
@@ -253,8 +254,22 @@ class Human():
             visual_search_duration = 0
             is_found = False
             # TODO
-            escape_key = self.handler.find_descendant('esc')
-            move_eyes = Move(str(operator_idx) + '_motor_eyes:' + escape_key.name, self.body_parts['eyes'],
+            target_x = target.top_left_x + target.width / 2
+            target_y = target.top_left_y + target.height / 2
+
+            if current_keyboard == 'keyboard_1':
+                escape_key = self.handler.find_descendant('esc')
+            elif current_keyboard == 'keyboard_2':
+                escape_key = self.handler.find_descendant('End Show')
+            elif current_keyboard == 'keyboard_3':
+                escape_key = self.handler.find_descendant('bright-')
+            elif current_keyboard == 'keyboard_3':
+                escape_key = self.handler.find_descendant('out_4')
+            # escape_key.top_left_x = 0
+            # escape_key.top_left_y = 0
+            # escape_key.width = 0
+            # escape_key.height = 0
+            move_eyes = Move(str(operator_idx) + '_motor_eyes:' + 'toLeftMost', self.body_parts['eyes'],
                              escape_key)
             move_eyes.execute()
             while not (is_found) and (visual_search_duration < retrieve_target_location.duration):
@@ -372,6 +387,8 @@ class Human():
 
                                 handler_at_next_fixation = self.handler.find_intersect(
                                     Event(next_fixation_x, next_fixation_y), current_keyboard)
+                                if not handler_at_next_fixation or handler_at_next_fixation.name not in touch_bar_keys:
+                                    continue
                                 if handle_at_current_fixation.name != handler_at_next_fixation.name or handler_at_next_fixation.name is target.name:
                                     findFlag = True
 
@@ -974,7 +991,7 @@ class Eyes(BodyPart):
 
         duration = self.t_prep + self.t_exec + D * self.t_sacc  # TODO: compute duration.
 
-        self.fixation_x = np.random.normal(target_x, self.saccade_noise_sigma)
+        self.fixation_x = target_x
         self.fixation_y = 0
 
         # move_event = MoveBodyPartEvent(self, self.fixation_x, self.fixation_y)

@@ -106,12 +106,12 @@ def main(argv):
 
 	# Convert total_duration from milliseconds to seconds.
 	total_duration /= 1000.0
-
-	speed_char_per_second = total_characters_count/total_duration
-
-	speed_words_per_minute = speed_char_per_second * 60/5
-
-	print("Typists can enter text at the speed of " + str(speed_words_per_minute) + "WPM.")
+	print("total duration: ", total_duration)
+	# speed_char_per_second = total_characters_count/total_duration
+	#
+	# speed_words_per_minute = speed_char_per_second * 60/5
+	#
+	# print("Typists can enter text at the speed of " + str(speed_words_per_minute) + "WPM.")
 
 if __name__ == "__main__":
 	main(sys.argv)
